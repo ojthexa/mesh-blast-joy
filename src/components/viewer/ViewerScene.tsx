@@ -50,16 +50,12 @@ const ViewerScene = ({ glbUrl, isExploded, pieceCount }: ViewerSceneProps) => {
       {/* Model */}
       <Center>
         <Suspense fallback={<LoadingFallback />}>
-          {glbUrl ? (
-            <GLBModel url={glbUrl} isExploded={isExploded} />
-          ) : (
-            <HexParticleFromGLB
-              url={glbUrl}
-              count={280}
-              hexSize={0.035}
-              explodeStrength={0.1}
-            />
-          )}
+          <HexParticleFromGLB
+            url="/models/logo-artikon.glb"
+            count={260}
+            hexSize={0.035}
+            explodeStrength={0.12}
+          />
         </Suspense>
       </Center>
 
