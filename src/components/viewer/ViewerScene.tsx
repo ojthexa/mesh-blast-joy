@@ -53,7 +53,7 @@ const ViewerScene = ({ glbUrl, isExploded, pieceCount }: ViewerSceneProps) => {
           {glbUrl ? (
             <GLBModel url={glbUrl} isExploded={isExploded} />
           ) : (
-            <OrganicRockChunks chunkCount={12} />
+            <OrganicRockChunks chunkCount={9} />
           )}
         </Suspense>
       </Center>

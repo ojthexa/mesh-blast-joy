@@ -6,7 +6,7 @@ interface Props {
   chunkCount?: number
 }
 
-const OrganicRockChunks = ({ chunkCount = 18 }: Props) => {
+const OrganicRockChunks = ({ chunkCount = 12 }: Props) => {
   const groupRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
 
@@ -19,8 +19,7 @@ const OrganicRockChunks = ({ chunkCount = 18 }: Props) => {
 
     for (let i = 0; i < pos.count; i++) {
       const v = new THREE.Vector3().fromBufferAttribute(pos, i)
-      const n = v.clone().normalize()
-      v.addScaledVector(n, (Math.random() - 0.5) * 0.4)
+      v.addScaledVector(v.normalize(), (Math.random() - 0.5) * 0.25)
       pos.setXYZ(i, v.x, v.y, v.z)
     }
 
@@ -29,42 +28,43 @@ const OrganicRockChunks = ({ chunkCount = 18 }: Props) => {
   }, [])
 
   /* =========================
-     2️⃣ CHUNKS
+     2️⃣ CHUNKS DATA
      ========================= */
   const chunks = useMemo(() => {
     return Array.from({ length: chunkCount }).map(() => {
       const dir = new THREE.Vector3(
         Math.random() - 0.5,
-        Math.random(),
+        Math.random() * 0.6,
         Math.random() - 0.5
       ).normalize()
 
       return {
-        direction: dir,
-        offset: dir.clone().multiplyScalar(1.2 + Math.random() * 0.8),
+        basePosition: new THREE.Vector3(), // pusat
+        explodeOffset: dir.multiplyScalar(0.25 + Math.random() * 0.15),
         rotation: new THREE.Euler(
-          Math.random() * Math.PI,
-          Math.random() * Math.PI,
-          Math.random() * Math.PI
+          Math.random() * 0.4,
+          Math.random() * 0.4,
+          Math.random() * 0.4
         ),
-        scale: 0.5 + Math.random() * 0.6
+        scale: 0.8 + Math.random() * 0.3
       }
     })
   }, [chunkCount])
 
   /* =========================
-     3️⃣ ANIMATION
+     3️⃣ ANIMATION (MICRO EXPLODE)
      ========================= */
   useFrame((_, delta) => {
     if (!groupRef.current) return
 
     groupRef.current.children.forEach((child, i) => {
       const c = chunks[i]
-      const target = hovered ? c.offset : new THREE.Vector3()
+      const target = hovered ? c.explodeOffset : c.basePosition
 
-      child.position.lerp(target, delta * 4)
-      child.rotation.x += delta * 0.4
-      child.rotation.y += delta * 0.3
+      child.position.lerp(target, delta * 6)
+      child.rotation.x += c.rotation.x * delta
+      child.rotation.y += c.rotation.y * delta
+      child.rotation.z += c.rotation.z * delta
     })
   })
 
@@ -82,12 +82,11 @@ const OrganicRockChunks = ({ chunkCount = 18 }: Props) => {
           key={i}
           geometry={rockGeometry}
           scale={c.scale}
-          rotation={c.rotation}
         >
           <meshStandardMaterial
-            color="#8f8870"
-            roughness={0.9}
-            metalness={0.1}
+            color="#8c846a"
+            roughness={0.95}
+            metalness={0.05}
           />
         </mesh>
       ))}
