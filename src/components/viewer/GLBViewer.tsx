@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import ViewerScene from './ViewerScene';
-import ControlPanel from './ControlPanel';
 
 const GLBViewer = () => {
   const [isExploded, setIsExploded] = useState(false);
@@ -60,19 +59,6 @@ const GLBViewer = () => {
           </p>
         </div>
       </div>
-
-      {/* Control Panel */}
-      <ControlPanel
-        isExploded={isExploded}
-        onExplode={handleExplode}
-        onReset={handleReset}
-        onFileUpload={handleFileUpload}
-        onUseDefaultCube={handleUseDefaultCube}
-        pieceCount={pieceCount}
-        onPieceCountChange={handlePieceCountChange}
-        glbFileName={glbFileName}
-        hasGlbLoaded={glbUrl !== null}
-      />
     </div>
   );
 };
