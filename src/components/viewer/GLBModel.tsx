@@ -1,5 +1,5 @@
-import { useRef, useMemo, useState, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useRef, useMemo, useState } from 'react';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -17,10 +17,90 @@ interface GLBModelProps {
   isExploded: boolean;
 }
 
+interface GLBPieceMeshProps {
+  piece: MeshPiece;
+  isGlobalExploded: boolean;
+}
+
+const GLBPieceMesh = ({ piece, isGlobalExploded }: GLBPieceMeshProps) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [animationProgress, setAnimationProgress] = useState(0);
+
+  // Piece explodes if globally exploded OR if hovered
+  const shouldExplode = isGlobalExploded || isHovered;
+
+  useFrame((_, delta) => {
+    const targetProgress = shouldExplode ? 1 : 0;
+    const speed = 3;
+    
+    if (Math.abs(animationProgress - targetProgress) > 0.001) {
+      const newProgress = THREE.MathUtils.lerp(
+        animationProgress,
+        targetProgress,
+        1 - Math.pow(0.001, delta * speed)
+      );
+      setAnimationProgress(newProgress);
+    }
+
+    if (meshRef.current) {
+      const easedProgress = easeOutBack(animationProgress);
+      
+      // Update position
+      meshRef.current.position.lerpVectors(
+        piece.originalPosition,
+        piece.targetPosition,
+        easedProgress
+      );
+      
+      // Update rotation
+      meshRef.current.rotation.set(
+        THREE.MathUtils.lerp(piece.originalRotation.x, piece.targetRotation.x, easedProgress),
+        THREE.MathUtils.lerp(piece.originalRotation.y, piece.targetRotation.y, easedProgress),
+        THREE.MathUtils.lerp(piece.originalRotation.z, piece.targetRotation.z, easedProgress)
+      );
+    }
+  });
+
+  // Easing function
+  const easeOutBack = (x: number): number => {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+  };
+
+  const handlePointerEnter = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    setIsHovered(true);
+    document.body.style.cursor = 'pointer';
+  };
+
+  const handlePointerLeave = () => {
+    setIsHovered(false);
+    document.body.style.cursor = 'auto';
+  };
+
+  // Clone the mesh and modify its material for hover effect
+  const clonedMesh = useMemo(() => {
+    const clone = piece.mesh.clone();
+    return clone;
+  }, [piece.mesh]);
+
+  return (
+    <primitive
+      ref={meshRef}
+      object={clonedMesh}
+      position={piece.originalPosition}
+      rotation={piece.originalRotation}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+    />
+  );
+};
+
 const GLBModel = ({ url, isExploded }: GLBModelProps) => {
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
-  const [animationProgress, setAnimationProgress] = useState(0);
 
   const pieces = useMemo(() => {
     const meshPieces: MeshPiece[] = [];
@@ -65,61 +145,19 @@ const GLBModel = ({ url, isExploded }: GLBModelProps) => {
     return meshPieces;
   }, [scene]);
 
-  useEffect(() => {
-    setAnimationProgress(0);
-  }, [isExploded]);
-
-  useFrame((_, delta) => {
-    const targetProgress = isExploded ? 1 : 0;
-    const speed = 2;
-    
-    if (Math.abs(animationProgress - targetProgress) > 0.001) {
-      const newProgress = THREE.MathUtils.lerp(
-        animationProgress,
-        targetProgress,
-        1 - Math.pow(0.001, delta * speed)
-      );
-      setAnimationProgress(newProgress);
-    }
-  });
-
-  // Easing function
-  const easeOutBack = (x: number): number => {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-  };
-
-  const easedProgress = easeOutBack(animationProgress);
-
   if (pieces.length === 0) {
     return <primitive object={scene} />;
   }
 
   return (
     <group ref={groupRef}>
-      {pieces.map((piece) => {
-        const currentPos = new THREE.Vector3().lerpVectors(
-          piece.originalPosition,
-          piece.targetPosition,
-          easedProgress
-        );
-        
-        const currentRot = new THREE.Euler(
-          THREE.MathUtils.lerp(piece.originalRotation.x, piece.targetRotation.x, easedProgress),
-          THREE.MathUtils.lerp(piece.originalRotation.y, piece.targetRotation.y, easedProgress),
-          THREE.MathUtils.lerp(piece.originalRotation.z, piece.targetRotation.z, easedProgress)
-        );
-
-        return (
-          <primitive
-            key={piece.id}
-            object={piece.mesh}
-            position={currentPos}
-            rotation={currentRot}
-          />
-        );
-      })}
+      {pieces.map((piece) => (
+        <GLBPieceMesh
+          key={piece.id}
+          piece={piece}
+          isGlobalExploded={isExploded}
+        />
+      ))}
     </group>
   );
 };
