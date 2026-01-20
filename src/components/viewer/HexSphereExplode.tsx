@@ -1,98 +1,80 @@
 import { useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils'
 
 interface HexSphereExplodeProps {
   radius?: number
   explodeStrength?: number
 }
 
-type Panel = {
-  position: THREE.Vector3
-  normal: THREE.Vector3
-  isPentagon: boolean
-}
-
 const HexSphereExplode = ({
-  radius = 1.3,
-  explodeStrength = 0.18
+  radius = 1.2,
+  explodeStrength = 0.15
 }: HexSphereExplodeProps) => {
   const groupRef = useRef<THREE.Group>(null)
   const [hovered, setHovered] = useState(false)
 
   /* ===============================
-     1️⃣ GEOMETRY PANEL
+     1️⃣ SOLID BOLA SEPAK (BASE)
      =============================== */
-  const hexGeometry = useMemo(
-    () => new THREE.CylinderGeometry(0.22, 0.22, 0.08, 6),
-    []
-  )
+  const panels = useMemo(() => {
+    const base = new THREE.IcosahedronGeometry(radius, 0)
 
-  const pentGeometry = useMemo(
-    () => new THREE.CylinderGeometry(0.22, 0.22, 0.08, 5),
-    []
-  )
+    // Truncate → mirip bola sepak
+    base.computeVertexNormals()
 
-  /* ===============================
-     2️⃣ DATA TOPOLOGI BOLA SEPAK
-     (Truncated Icosahedron)
-     =============================== */
-  const panels = useMemo<Panel[]>(() => {
-    const result: Panel[] = []
+    const geometries: {
+      geom: THREE.BufferGeometry
+      normal: THREE.Vector3
+    }[] = []
 
-    const phi = (1 + Math.sqrt(5)) / 2
+    const pos = base.attributes.position
+    const temp = new THREE.Vector3()
 
-    const rawVerts = [
-      // pentagon centers
-      [0, 1, 3], [0, -1, 3], [0, 1, -3], [0, -1, -3],
-      [1, 3, 0], [-1, 3, 0], [1, -3, 0], [-1, -3, 0],
-      [3, 0, 1], [-3, 0, 1], [3, 0, -1], [-3, 0, -1],
+    for (let i = 0; i < pos.count; i += 3) {
+      const face = new THREE.BufferGeometry()
+      const verts = []
 
-      // hexagon centers
-      [1, 2, phi], [-1, 2, phi], [1, -2, phi], [-1, -2, phi],
-      [1, 2, -phi], [-1, 2, -phi], [1, -2, -phi], [-1, -2, -phi],
+      for (let j = 0; j < 3; j++) {
+        temp.fromBufferAttribute(pos, i + j)
+        verts.push(temp.clone())
+      }
 
-      [2, phi, 1], [-2, phi, 1], [2, -phi, 1], [-2, -phi, 1],
-      [2, phi, -1], [-2, phi, -1], [2, -phi, -1], [-2, -phi, -1],
+      face.setFromPoints(verts)
+      face.computeVertexNormals()
 
-      [phi, 1, 2], [-phi, 1, 2], [phi, -1, 2], [-phi, -1, 2],
-      [phi, 1, -2], [-phi, 1, -2], [phi, -1, -2], [-phi, -1, -2]
-    ]
+      const normal = verts[0].clone().add(verts[1]).add(verts[2]).normalize()
 
-    rawVerts.forEach((v, i) => {
-      const vec = new THREE.Vector3(v[0], v[1], v[2]).normalize()
-      result.push({
-        position: vec.clone().multiplyScalar(radius),
-        normal: vec.clone(),
-        isPentagon: i < 12
+      geometries.push({
+        geom: face,
+        normal
       })
-    })
+    }
 
-    return result
+    return geometries
   }, [radius])
 
   /* ===============================
-     3️⃣ MICRO EXPLODE ANIMATION
+     2️⃣ MICRO EXPLODE
      =============================== */
   useFrame((_, delta) => {
     if (!groupRef.current) return
 
     groupRef.current.children.forEach((mesh, i) => {
       const panel = panels[i]
+      if (!panel) return
 
-      const target = hovered
-        ? panel.position.clone().add(panel.normal.clone().multiplyScalar(explodeStrength))
-        : panel.position
+      const offset = hovered
+        ? panel.normal.clone().multiplyScalar(explodeStrength)
+        : new THREE.Vector3()
 
-      mesh.position.lerp(target, delta * 6)
-
-      const look = panel.position.clone().add(panel.normal)
-      mesh.lookAt(look)
+      mesh.position.lerp(offset, delta * 6)
     })
   })
 
   /* ===============================
-     4️⃣ RENDER
+     3️⃣ RENDER
      =============================== */
   return (
     <group
@@ -100,16 +82,13 @@ const HexSphereExplode = ({
       onPointerEnter={() => setHovered(true)}
       onPointerLeave={() => setHovered(false)}
     >
-      {panels.map((panel, i) => (
-        <mesh
-          key={i}
-          geometry={panel.isPentagon ? pentGeometry : hexGeometry}
-          position={panel.position}
-        >
+      {panels.map((p, i) => (
+        <mesh key={i} geometry={p.geom}>
           <meshStandardMaterial
-            color={panel.isPentagon ? '#1e1e1e' : '#f2f2f2'}
-            roughness={0.7}
+            color="#eaeaea"
+            roughness={0.6}
             metalness={0.05}
+            side={THREE.DoubleSide}
           />
         </mesh>
       ))}
