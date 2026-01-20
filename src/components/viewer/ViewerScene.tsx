@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, Environment, Grid, Center } from '@react-three/drei'
-import HexSphereExplode from './HexSphereExplode'
+import HexParticleFromGLB from './HexParticleFromGLB'
 import GLBModel from './GLBModel'
 
 interface ViewerSceneProps {
@@ -53,10 +53,11 @@ const ViewerScene = ({ glbUrl, isExploded, pieceCount }: ViewerSceneProps) => {
           {glbUrl ? (
             <GLBModel url={glbUrl} isExploded={isExploded} />
           ) : (
-            <HexSphereExplode
-              radius={1.3}
-              count={80}
-              explodeStrength={0.2}
+            <HexParticleFromGLB
+              url={glbUrl}
+              count={280}
+              hexSize={0.035}
+              explodeStrength={0.1}
             />
           )}
         </Suspense>
