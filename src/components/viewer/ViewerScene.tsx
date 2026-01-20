@@ -1,8 +1,8 @@
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, Grid, Center } from '@react-three/drei';
-import ExplodingRockParticles from './ExplodingRockParticles';
-import GLBModel from './GLBModel';
+import { Suspense } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { OrbitControls, Environment, Grid, Center } from '@react-three/drei'
+import OrganicRockChunks from './OrganicRockChunks'
+import GLBModel from './GLBModel'
 
 interface ViewerSceneProps {
   glbUrl: string | null;
@@ -53,7 +53,7 @@ const ViewerScene = ({ glbUrl, isExploded, pieceCount }: ViewerSceneProps) => {
           {glbUrl ? (
             <GLBModel url={glbUrl} isExploded={isExploded} />
           ) : (
-            <ExplodingRockParticles particleCount={pieceCount * 300} />
+            <OrganicRockChunks chunkCount={12} />
           )}
         </Suspense>
       </Center>
