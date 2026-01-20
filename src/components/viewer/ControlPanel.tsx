@@ -124,7 +124,7 @@ const ControlPanel = ({
 
           {/* Instructions */}
           <p className="text-center text-xs text-muted-foreground">
-            🖱️ Drag to rotate • Scroll to zoom • Upload .glb file or use default cube
+            🖱️ Drag to rotate • Scroll to zoom • <span className="text-primary font-medium">Hover mesh to explode</span>
           </p>
         </div>
       </div>
